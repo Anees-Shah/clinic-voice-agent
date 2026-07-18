@@ -1,0 +1,155 @@
+{
+  "_comment": "Create an assistant in the Vapi dashboard (https://dashboard.vapi.ai/assistants) with these settings. Or use the Vapi API POST /assistant to create it programmatically.",
+
+  "name": "Sarah - Harley Street Receptionist",
+
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "temperature": 0.6,
+    "systemPrompt": "You are Sarah, a professional and warm AI receptionist at Harley Street Medical Centre in London. Your role is to help patients with appointments.\n\nClinic details:\n- Address: 123 Harley Street, London, W1G 6JA\n- Phone: +44 20 7123 4567\n- Hours: Mon-Fri 8AM-6PM, Sat 9AM-1PM, Sun Closed\n\nRules:\n1. Always greet the patient warmly.\n2. Before making ANY booking, ask for and confirm the patient's FULL NAME.\n3. For bookings: ask for preferred date and time, then confirm before calling the tool.\n4. Only offer times that are available (use list_appointments to check).\n5. Keep responses concise — this is a voice conversation.\n6. If the patient asks about something outside appointments, politely redirect them to call the clinic.\n7. Never make up or assume information — always ask the patient.\n8. After successfully booking, confirm the details back to the patient.\n9. For cancellations: ask for patient name and date, confirm before cancelling.\n10. If the backend returns an error, apologize and suggest calling the clinic.",
+    "maxTokens": 250,
+    "emotionRecognitionEnabled": false
+  },
+
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 1.0
+  },
+
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "en"
+  },
+
+  "tools": [
+    {
+      "type": "function",
+      "async": false,
+      "messages": [
+        {
+          "type": "request-start",
+          "content": "One moment, booking your appointment..."
+        },
+        {
+          "type": "request-complete",
+          "content": "Done!"
+        },
+        {
+          "type": "request-failed",
+          "content": "Sorry, I couldn't book that appointment. Please call the clinic at +44 20 7123 4567."
+        }
+      ],
+      "function": {
+        "name": "schedule_appointment",
+        "description": "Schedule a new appointment for a patient. Use this when a patient wants to book.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": {
+              "type": "string",
+              "description": "Full name of the patient as confirmed with them"
+            },
+            "start_time": {
+              "type": "string",
+              "description": "Date and time of the appointment in ISO 8601 format (e.g. 2026-07-20T10:00:00)"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Reason for the visit (optional, leave blank if patient doesn't specify)"
+            }
+          },
+          "required": ["patient_name", "start_time"]
+        }
+      },
+      "server": {
+        "url": "https://YOUR-BACKEND.onrender.com/schedule_appointment/"
+      }
+    },
+    {
+      "type": "function",
+      "async": false,
+      "messages": [
+        {
+          "type": "request-start",
+          "content": "Let me check for that appointment..."
+        },
+        {
+          "type": "request-complete",
+          "content": "Done!"
+        },
+        {
+          "type": "request-failed",
+          "content": "Sorry, I had trouble cancelling the appointment. Please call the clinic."
+        }
+      ],
+      "function": {
+        "name": "cancel_appointment",
+        "description": "Cancel an existing appointment for a patient. Use this when a patient wants to cancel.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patient_name": {
+              "type": "string",
+              "description": "Full name of the patient as confirmed with them"
+            },
+            "date": {
+              "type": "string",
+              "description": "Date of the appointment to cancel in YYYY-MM-DD format"
+            }
+          },
+          "required": ["patient_name", "date"]
+        }
+      },
+      "server": {
+        "url": "https://YOUR-BACKEND.onrender.com/cancel_appointment/"
+      }
+    },
+    {
+      "type": "function",
+      "async": false,
+      "messages": [
+        {
+          "type": "request-start",
+          "content": "Let me check what we have on that day..."
+        },
+        {
+          "type": "request-complete",
+          "content": "Here are the results."
+        },
+        {
+          "type": "request-failed",
+          "content": "Sorry, I couldn't retrieve the schedule."
+        }
+      ],
+      "function": {
+        "name": "list_appointments",
+        "description": "Check what appointments exist for a given date. Use this before booking to see available slots, or when a patient asks about their appointment.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "The date to check in YYYY-MM-DD format"
+            }
+          },
+          "required": ["date"]
+        }
+      },
+      "server": {
+        "url": "https://YOUR-BACKEND.onrender.com/list_appointments/"
+      }
+    }
+  ],
+
+  "analysisPlan": {
+    "summaryPromptEnabled": true
+  },
+
+  "artifactPlan": {
+    "recordingEnabled": false,
+    "transcriptEnabled": true
+  }
+}

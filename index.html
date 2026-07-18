@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">London Clinic of Aesthetics | AI Receptionist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #2d2a24;
+      background: #faf7f2;
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      background: rgba(255,252,248,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #e8e0d6;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    nav .logo {
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--accent, #c9975e);
+      letter-spacing: -.02em;
+    }
+    nav .logo span { color: var(--primary, #2b9e82); }
+    nav .tagline {
+      font-size: .82rem;
+      color: #8b7d6e;
+    }
+
+    .hero {
+      margin-top: 64px;
+      min-height: calc(100vh - 64px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 24px 80px;
+      background: linear-gradient(160deg, #faf5eb 0%, #fdf8f0 50%, #f5efe6 100%);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: #f5e6d3;
+      color: #8b6b3d;
+      font-size: .78rem;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+      letter-spacing: .02em;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.2;
+      max-width: 680px;
+      margin-bottom: 16px;
+      color: #2d2a24;
+    }
+    .hero h1 span { color: var(--primary, #2b9e82); }
+    .hero p {
+      font-size: 1.1rem;
+      color: #6b5f50;
+      max-width: 520px;
+      margin-bottom: 40px;
+    }
+    .hero .address-line {
+      font-size: .9rem;
+      color: #8b7d6e;
+      margin-bottom: 32px;
+    }
+    .hero .address-line svg { vertical-align: middle; margin-right: 6px; }
+
+    .cta-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 48px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-family: inherit;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary, #2b9e82), var(--primary-dark, #1f7a63));
+      border: none;
+      border-radius: 60px;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(43,158,130,.35);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(43,158,130,.45);
+    }
+    .cta-btn:active { transform: translateY(0); }
+    .cta-btn .pulse {
+      width: 12px; height: 12px;
+      background: #fff;
+      border-radius: 50%;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: .5; transform: scale(.85); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    .cta-btn.is-calling {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      box-shadow: 0 8px 32px rgba(220,38,38,.35);
+    }
+    .cta-btn.is-calling:hover {
+      box-shadow: 0 12px 40px rgba(220,38,38,.45);
+    }
+    .cta-btn .spinner {
+      display: none;
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    .cta-btn.is-loading .spinner { display: inline-block; }
+    .cta-btn.is-loading .pulse { display: none; }
+    .cta-btn.is-loading .btn-label { display: none; }
+    .cta-btn.is-loading .btn-label-loading { display: inline; }
+    .btn-label-loading { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .info-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      border: 1px solid #e8e0d6;
+    }
+    .card .icon { font-size: 1.8rem; margin-bottom: 12px; }
+    .card h3 {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--accent, #c9975e);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .card p, .card .hours-row {
+      font-size: .92rem;
+      color: #6b5f50;
+      line-height: 1.8;
+    }
+    .card .hours-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed #e8e0d6;
+      padding: 4px 0;
+    }
+    .card .hours-row:last-child { border-bottom: none; }
+    .card .hours-row .day { font-weight: 500; }
+    .card .hours-row .time { color: var(--primary, #1f7a63); }
+
+    .status-bar {
+      max-width: 600px;
+      margin: -40px auto 0;
+      padding: 0 24px 60px;
+      text-align: center;
+    }
+    .status-bar .status-msg {
+      display: inline-block;
+      font-size: .85rem;
+      color: #8b7d6e;
+      background: #fff;
+      padding: 8px 20px;
+      border-radius: 100px;
+      border: 1px solid #e8e0d6;
+      box-shadow: 0 1px 4px rgba(0,0,0,.04);
+      transition: all .3s;
+    }
+    .status-bar .status-msg.is-active {
+      color: var(--primary, #2b9e82);
+      border-color: var(--primary, #2b9e82);
+      background: #f0fdf9;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      font-size: .82rem;
+      color: #a09282;
+      border-top: 1px solid #e8e0d6;
+    }
+
+    @media (max-width: 600px) {
+      nav .tagline { display: none; }
+      .cta-btn { padding: 16px 32px; font-size: 1rem; width: 100%; justify-content: center; }
+      .hero { padding: 40px 20px 60px; }
+      .info-section { padding: 48px 16px; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo" id="clinicLogo">London <span>Clinic of Aesthetics</span></div>
+    <div class="tagline" id="clinicTagline">&#9733; Premium Medical Aesthetics</div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-badge">&#9888; AI Receptionist Available Now</div>
+    <h1>Book an appointment &mdash; <span>just by talking</span></h1>
+    <p id="heroDescription">
+      Speak with our AI receptionist. They can book, change, or check
+      your appointments in seconds.
+    </p>
+    <div class="address-line" id="clinicAddress">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b7d6e" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      123 Main Street
+    </div>
+
+    <button id="talkBtn" class="cta-btn">
+      <span class="pulse"></span>
+      <span class="btn-label">Talk to AI Receptionist</span>
+      <span class="btn-label-loading">Connecting&hellip;</span>
+      <span class="spinner"></span>
+    </button>
+  </section>
+
+  <div class="status-bar">
+    <div id="statusMsg" class="status-msg">
+      &#9679; Tap the button above to speak with us
+    </div>
+  </div>
+
+  <section class="info-section">
+    <div class="card">
+      <div class="icon">&#128197;</div>
+      <h3>Opening Hours</h3>
+      <div id="hoursContainer">
+        <div class="hours-row"><span class="day">Monday to Friday</span><span class="time">09:00am to 05:00pm</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="icon">&#128222;</div>
+      <h3>Contact</h3>
+      <p id="clinicContact">0044xxxxxxxxxx</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#127973;</div>
+      <h3>Services</h3>
+      <p id="clinicServices">Anti-wrinkle treatments &bull; Dermal fillers &bull; Skin rejuvenation &bull; Medical-grade facials &bull; Laser treatments</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128179;</div>
+      <h3>Insurance</h3>
+      <p>We accept all major private insurers. Self-pay also welcome.</p>
+    </div>
+  </section>
+
+  <footer id="clinicFooter">
+    &copy; 2026 London Clinic of Aesthetics &mdash; All rights reserved
+  </footer>
+
+  <script type="module">
+    import Vapi from "https://esm.sh/@vapi-ai/web@3.2.0";
+
+    // CHANGE THIS to your Railway backend URL after deployment
+    const API_BASE = "https://your-app.up.railway.app";
+    const btn  = document.getElementById("talkBtn");
+    const status = document.getElementById("statusMsg");
+
+    let vapi = null;
+    let isActive = false;
+    let vapiPublicKey = "";
+    let assistantId = "";
+
+    function setStatus(text, active = false) {
+      status.textContent = text;
+      status.classList.toggle("is-active", active);
+    }
+
+    function setLoading(loading) {
+      btn.classList.toggle("is-loading", loading);
+    }
+
+    async function loadSettings() {
+      try {
+        const resp = await fetch(`${API_BASE}/admin/settings`);
+        if (!resp.ok) return;
+        const s = await resp.json();
+
+        document.title = s.clinic_name || "London Clinic of Aesthetics | AI Receptionist";
+
+        const logoEl = document.getElementById("clinicLogo");
+        if (s.clinic_name) {
+          const parts = s.clinic_name.split(/ (.+)/);
+          if (parts.length > 1 && parts[1]) {
+            logoEl.innerHTML = `${parts[0]} <span>${parts[1]}</span>`;
+          } else {
+            logoEl.innerHTML = `${s.clinic_name} <span>Clinic</span>`;
+          }
+        }
+
+        if (s.clinic_address) {
+          document.getElementById("clinicAddress").innerHTML =
+            `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b7d6e" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${s.clinic_address}`;
+        }
+
+        if (s.clinic_hours && Array.isArray(s.clinic_hours)) {
+          const hoursContainer = document.getElementById("hoursContainer");
+          hoursContainer.innerHTML = s.clinic_hours.map(h =>
+            `<div class="hours-row"><span class="day">${h.day || ""}</span><span class="time">${h.time || ""}</span></div>`
+          ).join("");
+        }
+
+        if (s.clinic_phone) {
+          const contactEl = document.getElementById("clinicContact");
+          const email = s.clinic_email ? `<br />${s.clinic_email}` : "";
+          contactEl.innerHTML = `${s.clinic_phone}${email}`;
+        }
+
+        if (s.clinic_name) {
+          document.getElementById("clinicTagline").textContent = `\u2605 ${s.clinic_name}`;
+          document.getElementById("clinicFooter").innerHTML =
+            `&copy; 2026 ${s.clinic_name} &mdash; All rights reserved`;
+        }
+
+        if (s.brand_primary_color) {
+          document.documentElement.style.setProperty("--primary", s.brand_primary_color);
+          const r = parseInt(s.brand_primary_color.slice(1,3), 16);
+          const g = parseInt(s.brand_primary_color.slice(3,5), 16);
+          const b = parseInt(s.brand_primary_color.slice(5,7), 16);
+          const darker = `rgb(${Math.max(0,r-30)},${Math.max(0,g-30)},${Math.max(0,b-30)})`;
+          document.documentElement.style.setProperty("--primary-dark", darker);
+        }
+        if (s.brand_accent_color) {
+          document.documentElement.style.setProperty("--accent", s.brand_accent_color);
+        }
+
+        vapiPublicKey = s.vapi_public_key || "";
+        assistantId = s.vapi_assistant_id || "";
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    }
+
+    await loadSettings();
+
+    if (!vapiPublicKey || !assistantId) {
+      setStatus("&#9888; Voice assistant not configured. Contact the clinic.");
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+    } else {
+      vapi = new Vapi(vapiPublicKey);
+
+      btn.addEventListener("click", async () => {
+        if (isActive) {
+          vapi.stop();
+          return;
+        }
+
+        setLoading(true);
+        setStatus("Connecting to AI receptionist...", true);
+
+        try {
+          await vapi.start(assistantId);
+          isActive = true;
+          btn.classList.add("is-calling");
+          btn.querySelector(".btn-label").textContent = "End Call";
+          setStatus("\u25cf AI Receptionist is speaking &mdash; you can talk now", true);
+        } catch (err) {
+          console.error("Vapi call failed:", err);
+          setStatus("\u26a0 Could not connect. Please try again or call us directly.");
+          btn.classList.remove("is-calling");
+          btn.querySelector(".btn-label").textContent = "Talk to AI Receptionist";
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      vapi.on("call-end", () => {
+        isActive = false;
+        btn.classList.remove("is-calling");
+        btn.querySelector(".btn-label").textContent = "Talk to AI Receptionist";
+        setStatus("\u25cf Call ended. Tap the button to speak with us again.");
+      });
+
+      vapi.on("message", (msg) => {
+        if (msg.type === "speech-update" && msg.status === "speaking") {
+          setStatus("\u25b6 AI Receptionist is speaking...", true);
+        }
+        if (msg.type === "speech-update" && msg.status === "listening") {
+          setStatus("\u25cf Listening... please speak now", true);
+        }
+      });
+
+      vapi.on("error", (err) => {
+        console.error("Vapi error:", err);
+        setStatus("\u26a0 Something went wrong. Please try again.");
+      });
+    }
+  </script>
+</body>
+</html>

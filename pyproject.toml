@@ -1,0 +1,14 @@
+[project]
+name = "vapi-voice-agent-1"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.139.0",
+    "pydantic>=2.0",
+    "requests>=2.31.0",
+    "sqlalchemy>=2.0.51",
+    "streamlit>=1.59.2",
+    "uvicorn>=0.51.0",
+]

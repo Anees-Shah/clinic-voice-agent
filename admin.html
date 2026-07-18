@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>London Clinic of Aesthetics — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #2d2a24; background: #f5f0e8; line-height: 1.6; min-height: 100vh;
+    }
+    a { color: #2b9e82; text-decoration: none; }
+
+    .login-screen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; background: linear-gradient(160deg, #faf5eb 0%, #fdf8f0 50%, #f5efe6 100%);
+      padding: 24px;
+    }
+    .login-card {
+      background: #fff; border-radius: 20px; padding: 48px 40px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08); max-width: 400px; width: 100%;
+      border: 1px solid #e8e0d6;
+    }
+    .login-card h1 { font-size: 1.5rem; font-weight: 800; color: #c9975e; margin-bottom: 4px; }
+    .login-card p { font-size: .9rem; color: #8b7d6e; margin-bottom: 28px; }
+    .login-card label { display: block; font-size: .82rem; font-weight: 600; color: #6b5f50; margin-bottom: 6px; }
+    .login-card input {
+      width: 100%; padding: 12px 16px; font-size: 1rem; font-family: inherit;
+      border: 1px solid #d0c8bc; border-radius: 10px; margin-bottom: 20px;
+      outline: none; transition: border .2s;
+    }
+    .login-card input:focus { border-color: #2b9e82; box-shadow: 0 0 0 3px rgba(43,158,130,.12); }
+    .login-card .login-btn {
+      width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; font-family: inherit;
+      background: #2b9e82; color: #fff; border: none; border-radius: 10px;
+      cursor: pointer; transition: background .2s;
+    }
+    .login-card .login-btn:hover { background: #1f7a63; }
+    .login-error { color: #dc2626; font-size: .85rem; margin-bottom: 12px; display: none; }
+
+    .dashboard { display: none; }
+    .dash-header {
+      background: #fff; border-bottom: 1px solid #e8e0d6; padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;
+    }
+    .dash-header .logo { font-weight: 800; font-size: 1.05rem; color: #c9975e; }
+    .dash-header .logo span { color: #2b9e82; }
+    .dash-header .right { display: flex; align-items: center; gap: 16px; }
+    .dash-header .nav-btn {
+      padding: 8px 20px; font-size: .85rem; font-weight: 600; font-family: inherit;
+      background: none; border: 1px solid #d0c8bc; border-radius: 8px; cursor: pointer;
+      color: #8b7d6e; transition: all .2s;
+    }
+    .dash-header .nav-btn:hover { border-color: #2b9e82; color: #2b9e82; }
+    .dash-header .nav-btn.active { background: #2b9e82; color: #fff; border-color: #2b9e82; }
+    .dash-header .logout-btn {
+      padding: 8px 20px; font-size: .85rem; font-weight: 600; font-family: inherit;
+      background: none; border: 1px solid #d0c8bc; border-radius: 8px; cursor: pointer;
+      color: #8b7d6e; transition: all .2s;
+    }
+    .dash-header .logout-btn:hover { border-color: #dc2626; color: #dc2626; }
+
+    .dash-body { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #fff; border-radius: 14px; padding: 20px;
+      border: 1px solid #e8e0d6; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .stat-card .label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #a09282; margin-bottom: 4px; }
+    .stat-card .value { font-size: 2rem; font-weight: 800; color: #2d2a24; line-height: 1.2; }
+    .stat-card .sub { font-size: .8rem; color: #8b7d6e; margin-top: 4px; }
+    .stat-card.accent-green .value { color: #2b9e82; }
+    .stat-card.accent-red .value { color: #dc2626; }
+    .stat-card.accent-amber .value { color: #d97706; }
+    .stat-card.accent-blue .value { color: #2563eb; }
+
+    .charts-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-card {
+      background: #fff; border-radius: 14px; padding: 20px;
+      border: 1px solid #e8e0d6; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .chart-card h3 { font-size: .9rem; font-weight: 700; color: #6b5f50; margin-bottom: 12px; }
+    .chart-card canvas { max-height: 260px; }
+
+    .filters-bar {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 16px;
+      background: #fff; border-radius: 14px; padding: 16px 20px;
+      border: 1px solid #e8e0d6;
+    }
+    .filters-bar .field { display: flex; flex-direction: column; gap: 4px; }
+    .filters-bar .field label { font-size: .75rem; font-weight: 600; color: #8b7d6e; text-transform: uppercase; letter-spacing: .04em; }
+    .filters-bar .field input,
+    .filters-bar .field select {
+      padding: 8px 12px; font-size: .9rem; font-family: inherit;
+      border: 1px solid #d0c8bc; border-radius: 8px; outline: none;
+    }
+    .filters-bar .field input:focus,
+    .filters-bar .field select:focus { border-color: #2b9e82; }
+    .filters-bar .btn {
+      padding: 8px 20px; font-size: .85rem; font-weight: 600; font-family: inherit;
+      background: #2b9e82; color: #fff; border: none; border-radius: 8px; cursor: pointer;
+      transition: background .2s;
+    }
+    .filters-bar .btn:hover { background: #1f7a63; }
+    .filters-bar .btn-outline {
+      background: none; border: 1px solid #d0c8bc; color: #8b7d6e;
+    }
+    .filters-bar .btn-outline:hover { border-color: #a09282; }
+
+    .table-wrap {
+      background: #fff; border-radius: 14px; border: 1px solid #e8e0d6;
+      overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th {
+      text-align: left; padding: 12px 16px; font-size: .75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .04em; color: #8b7d6e;
+      background: #faf7f2; border-bottom: 1px solid #e8e0d6; white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    th:hover { color: #2d2a24; }
+    td { padding: 12px 16px; border-bottom: 1px solid #f0ebe4; vertical-align: middle; }
+    tr:hover td { background: #faf7f2; }
+    tr:last-child td { border-bottom: none; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 100px; font-size: .78rem; font-weight: 600;
+    }
+    .status-badge.scheduled { background: #dbeafe; color: #1e4b7a; }
+    .status-badge.completed { background: #d1fae5; color: #065f46; }
+    .status-badge.no_show { background: #fef3c7; color: #92400e; }
+    .status-badge.cancelled { background: #fee2e2; color: #991b1b; }
+
+    .action-btn {
+      padding: 4px 12px; font-size: .78rem; font-weight: 600; font-family: inherit;
+      border-radius: 6px; border: none; cursor: pointer; transition: all .15s;
+    }
+    .action-btn.complete { background: #d1fae5; color: #065f46; }
+    .action-btn.complete:hover { background: #a7f3d0; }
+    .action-btn.noshow { background: #fef3c7; color: #92400e; }
+    .action-btn.noshow:hover { background: #fde68a; }
+    .action-btn.cancel-act { background: #fee2e2; color: #991b1b; }
+    .action-btn.cancel-act:hover { background: #fecaca; }
+
+    .page-info { font-size: .85rem; color: #8b7d6e; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .page-info .pages { display: flex; gap: 6px; }
+    .page-info .pages button {
+      padding: 4px 12px; border: 1px solid #d0c8bc; border-radius: 6px;
+      background: #fff; cursor: pointer; font-family: inherit; font-size: .85rem;
+    }
+    .page-info .pages button:hover { border-color: #2b9e82; color: #2b9e82; }
+    .page-info .pages button:disabled { opacity: .4; cursor: default; }
+
+    .loading { text-align: center; padding: 60px 20px; color: #a09282; }
+    .loading .spinner {
+      width: 32px; height: 32px; border: 3px solid #e8e0d6; border-top-color: #2b9e82;
+      border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 12px 24px;
+      border-radius: 10px; font-size: .9rem; font-weight: 500;
+      color: #fff; transform: translateY(100px); opacity: 0;
+      transition: all .3s; z-index: 100;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #065f46; }
+    .toast.error { background: #991b1b; }
+
+    .settings-panel { display: none; }
+    .settings-card {
+      background: #fff; border-radius: 14px; border: 1px solid #e8e0d6;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04); padding: 24px; margin-bottom: 16px;
+    }
+    .settings-card h2 { font-size: 1.1rem; font-weight: 700; color: #c9975e; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e8e0d6; }
+    .settings-card .field { margin-bottom: 16px; }
+    .settings-card .field label { display: block; font-size: .82rem; font-weight: 600; color: #6b5f50; margin-bottom: 4px; }
+    .settings-card .field input, .settings-card .field textarea {
+      width: 100%; padding: 10px 14px; font-size: .92rem; font-family: inherit;
+      border: 1px solid #d0c8bc; border-radius: 8px; outline: none;
+    }
+    .settings-card .field input:focus, .settings-card .field textarea:focus { border-color: #2b9e82; box-shadow: 0 0 0 3px rgba(43,158,130,.12); }
+    .settings-card .field textarea { min-height: 80px; resize: vertical; }
+    .settings-card .field .hint { font-size: .78rem; color: #a09282; margin-top: 4px; }
+    .settings-card .field-row { display: flex; gap: 16px; }
+    .settings-card .field-row .field { flex: 1; }
+    .settings-card .save-btn {
+      padding: 10px 28px; font-size: .9rem; font-weight: 700; font-family: inherit;
+      background: #2b9e82; color: #fff; border: none; border-radius: 8px;
+      cursor: pointer; transition: background .2s;
+    }
+    .settings-card .save-btn:hover { background: #1f7a63; }
+
+    .super-key-section {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: #fdf8f0;
+      border: 1px solid #e8d5b5;
+      border-radius: 10px;
+    }
+    .super-key-section label { font-size: .82rem; font-weight: 600; color: #8b6b3d; display: block; margin-bottom: 4px; }
+    .super-key-section input {
+      width: 100%; padding: 10px 14px; font-size: .92rem; font-family: inherit;
+      border: 1px solid #e8d5b5; border-radius: 8px; outline: none; background: #fff;
+    }
+    .super-key-section input:focus { border-color: #c9975e; box-shadow: 0 0 0 3px rgba(201,151,94,.12); }
+    .super-key-status { font-size: .82rem; margin-top: 6px; }
+    .super-key-status.valid { color: #065f46; }
+    .super-key-status.invalid { color: #991b1b; }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h1>London Clinic of Aesthetics</h1>
+    <p id="loginClinicName">Admin Dashboard</p>
+    <div id="loginError" class="login-error">Incorrect password. Please try again.</div>
+    <label for="passwordInput">Admin Password</label>
+    <input type="password" id="passwordInput" placeholder="Enter admin password" autocomplete="off" />
+    <button class="login-btn" id="loginBtn">Sign In</button>
+  </div>
+</div>
+
+<div id="dashboard" class="dashboard">
+  <header class="dash-header">
+    <div class="logo" id="dashLogo">London <span>Clinic of Aesthetics</span> &mdash; Admin</div>
+    <div class="right">
+      <button class="nav-btn" id="navDashboardBtn">Dashboard</button>
+      <button class="nav-btn" id="navSettingsBtn">Settings</button>
+      <span style="font-size:.82rem;color:#8b7d6e;" id="dashDate"></span>
+      <button class="logout-btn" id="logoutBtn">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="dash-body">
+
+    <div id="dashboardView">
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Appointments Per Day (Last 14 Days)</h3>
+          <canvas id="barChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Status Distribution</h3>
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+
+      <div class="filters-bar">
+        <div class="field">
+          <label>From</label>
+          <input type="date" id="filterFrom" />
+        </div>
+        <div class="field">
+          <label>To</label>
+          <input type="date" id="filterTo" />
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="filterStatus">
+            <option value="">All</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="completed">Completed</option>
+            <option value="no_show">No Show</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Patient</label>
+          <input type="text" id="filterName" placeholder="Search name..." />
+        </div>
+        <button class="btn" id="filterBtn">Apply</button>
+        <button class="btn btn-outline" id="clearFilterBtn">Clear</button>
+      </div>
+
+      <div class="table-wrap" id="tableWrap">
+        <div class="loading" id="tableLoading">
+          <div class="spinner"></div>
+          Loading appointments...
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsView" class="settings-panel">
+      <div class="super-key-section">
+        <label>Super Admin Key (required for all changes)</label>
+        <input type="password" id="superKeyInput" placeholder="Enter your SUPER_ADMIN_KEY" />
+        <div id="superKeyStatus" class="super-key-status"></div>
+      </div>
+
+      <div class="settings-card">
+        <h2>Clinic Information</h2>
+        <div class="field-row">
+          <div class="field">
+            <label>Clinic Name</label>
+            <input type="text" id="setClinicName" />
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="text" id="setClinicPhone" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <input type="text" id="setClinicAddress" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="setClinicEmail" />
+        </div>
+        <div class="field">
+          <label>Opening Hours (JSON array)</label>
+          <textarea id="setClinicHours" placeholder='[{"day":"Mon - Fri","time":"09:00am - 05:00pm"}]'></textarea>
+          <div class="hint">JSON array of objects with "day" and "time" keys.</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h2>Branding</h2>
+        <div class="field-row">
+          <div class="field">
+            <label>Primary Color</label>
+            <input type="color" id="setPrimaryColor" />
+          </div>
+          <div class="field">
+            <label>Accent Color</label>
+            <input type="color" id="setAccentColor" />
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h2>Vapi Voice Agent</h2>
+        <div class="field">
+          <label>Assistant ID</label>
+          <input type="text" id="setVapiAssistantId" placeholder="From Vapi dashboard" />
+        </div>
+        <div class="field">
+          <label>Public Key</label>
+          <input type="text" id="setVapiPublicKey" placeholder="From Vapi dashboard" />
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h2>Change Admin Password</h2>
+        <div class="field">
+          <label>New Password</label>
+          <input type="password" id="setNewPassword" placeholder="Minimum 4 characters" />
+        </div>
+        <div class="field">
+          <label>Confirm New Password</label>
+          <input type="password" id="setConfirmPassword" placeholder="Confirm new password" />
+        </div>
+        <button class="save-btn" id="changePasswordBtn">Change Password</button>
+      </div>
+
+      <button class="save-btn" id="saveSettingsBtn" style="margin-bottom:32px;">Save All Settings</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// CHANGE THIS to your Railway backend URL after deployment
+const API_BASE = "https://your-app.up.railway.app";
+
+let token = sessionStorage.getItem("admin_token");
+let barChartInstance = null;
+let pieChartInstance = null;
+let currentPage = 1;
+
+const loginScreen = document.getElementById("loginScreen");
+const dashboard = document.getElementById("dashboard");
+const passwordInput = document.getElementById("passwordInput");
+const loginBtn = document.getElementById("loginBtn");
+const loginError = document.getElementById("loginError");
+const loginClinicName = document.getElementById("loginClinicName");
+const logoutBtn = document.getElementById("logoutBtn");
+const statsGrid = document.getElementById("statsGrid");
+const tableWrap = document.getElementById("tableWrap");
+const tableLoading = document.getElementById("tableLoading");
+const toast = document.getElementById("toast");
+const dashDate = document.getElementById("dashDate");
+const dashLogo = document.getElementById("dashLogo");
+const navDashboardBtn = document.getElementById("navDashboardBtn");
+const navSettingsBtn = document.getElementById("navSettingsBtn");
+const dashboardView = document.getElementById("dashboardView");
+const settingsView = document.getElementById("settingsView");
+
+const filterFrom = document.getElementById("filterFrom");
+const filterTo = document.getElementById("filterTo");
+const filterStatus = document.getElementById("filterStatus");
+const filterName = document.getElementById("filterName");
+const filterBtn = document.getElementById("filterBtn");
+const clearFilterBtn = document.getElementById("clearFilterBtn");
+
+const superKeyInput = document.getElementById("superKeyInput");
+const superKeyStatus = document.getElementById("superKeyStatus");
+const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+const changePasswordBtn = document.getElementById("changePasswordBtn");
+
+function showToast(msg, type = "success") {
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+function apiHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+  };
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtDateTime(iso) {
+  return `${fmtDate(iso)} ${fmtTime(iso)}`;
+}
+
+async function doLogin(password) {
+  try {
+    const resp = await fetch(`${API_BASE}/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.detail || "Login failed");
+    }
+    const data = await resp.json();
+    token = data.token;
+    sessionStorage.setItem("admin_token", token);
+    showDashboard();
+  } catch (err) {
+    loginError.textContent = err.message;
+    loginError.style.display = "block";
+    passwordInput.value = "";
+    passwordInput.focus();
+  }
+}
+
+async function logout() {
+  try {
+    await fetch(`${API_BASE}/admin/logout`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+  } catch {}
+  token = null;
+  sessionStorage.removeItem("admin_token");
+  dashboard.style.display = "none";
+  loginScreen.style.display = "flex";
+  passwordInput.value = "";
+}
+
+function showDashboard() {
+  loginScreen.style.display = "none";
+  dashboard.style.display = "block";
+  dashDate.textContent = `Today: ${fmtDate(new Date())}`;
+  switchView("dashboard");
+  loadClinicName();
+  loadStats();
+  loadAppointments();
+}
+
+async function loadClinicName() {
+  try {
+    const resp = await fetch(`${API_BASE}/admin/settings`);
+    if (resp.ok) {
+      const s = await resp.json();
+      if (s.clinic_name) {
+        loginClinicName.textContent = s.clinic_name + " — Admin";
+        const parts = s.clinic_name.split(/ (.+)/);
+        if (parts.length > 1 && parts[1]) {
+          dashLogo.innerHTML = `${parts[0]} <span>${parts[1]}</span> &mdash; Admin`;
+        } else {
+          dashLogo.textContent = `${s.clinic_name} — Admin`;
+        }
+      }
+    }
+  } catch {}
+}
+
+let isDashboardActive = false;
+let isSettingsActive = false;
+
+function switchView(view) {
+  if (view === "dashboard") {
+    isDashboardActive = true;
+    isSettingsActive = false;
+    dashboardView.style.display = "block";
+    settingsView.style.display = "none";
+    navDashboardBtn.classList.add("active");
+    navSettingsBtn.classList.remove("active");
+    if (!barChartInstance) { loadStats(); loadAppointments(); }
+  } else {
+    isDashboardActive = false;
+    isSettingsActive = true;
+    dashboardView.style.display = "none";
+    settingsView.style.display = "block";
+    navDashboardBtn.classList.remove("active");
+    navSettingsBtn.classList.add("active");
+    loadSettingsForm();
+  }
+}
+
+async function loadSettingsForm() {
+  try {
+    const resp = await fetch(`${API_BASE}/admin/settings`);
+    if (!resp.ok) return;
+    const s = await resp.json();
+    document.getElementById("setClinicName").value = s.clinic_name || "";
+    document.getElementById("setClinicAddress").value = s.clinic_address || "";
+    document.getElementById("setClinicPhone").value = s.clinic_phone || "";
+    document.getElementById("setClinicEmail").value = s.clinic_email || "";
+    document.getElementById("setClinicHours").value = s.clinic_hours && Array.isArray(s.clinic_hours)
+      ? JSON.stringify(s.clinic_hours, null, 2) : "[]";
+    document.getElementById("setPrimaryColor").value = s.brand_primary_color || "#2b9e82";
+    document.getElementById("setAccentColor").value = s.brand_accent_color || "#c9975e";
+    document.getElementById("setVapiAssistantId").value = s.vapi_assistant_id || "";
+    document.getElementById("setVapiPublicKey").value = s.vapi_public_key || "";
+  } catch {}
+}
+
+async function loadStats() {
+  try {
+    const resp = await fetch(`${API_BASE}/admin/stats`, { headers: apiHeaders() });
+    if (resp.status === 401) { logout(); return; }
+    const data = await resp.json();
+    renderStats(data);
+    renderCharts(data);
+  } catch (err) {
+    showToast("Failed to load stats", "error");
+  }
+}
+
+function renderStats(data) {
+  const t = data.today;
+  const w = data.this_week;
+  const m = data.this_month;
+  const o = data.overall;
+
+  statsGrid.innerHTML = `
+    <div class="stat-card accent-blue">
+      <div class="label">Today</div>
+      <div class="value">${t.total}</div>
+      <div class="sub">${t.scheduled} scheduled &middot; ${t.completed} done</div>
+    </div>
+    <div class="stat-card accent-green">
+      <div class="label">This Week</div>
+      <div class="value">${w.total}</div>
+      <div class="sub">${w.completed} completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">This Month</div>
+      <div class="value">${m.total}</div>
+      <div class="sub">${m.scheduled} remaining</div>
+    </div>
+    <div class="stat-card accent-green">
+      <div class="label">Completed</div>
+      <div class="value">${o.completed}</div>
+      <div class="sub">${o.total > 0 ? Math.round(o.completed / o.total * 100) : 0}% completion rate</div>
+    </div>
+    <div class="stat-card accent-amber">
+      <div class="label">No Shows</div>
+      <div class="value">${o.no_show}</div>
+      <div class="sub">${o.total > 0 ? Math.round(o.no_show / o.total * 100) : 0}% of all</div>
+    </div>
+    <div class="stat-card accent-red">
+      <div class="label">Cancelled</div>
+      <div class="value">${o.cancelled}</div>
+      <div class="sub">${o.total > 0 ? Math.round(o.cancelled / o.total * 100) : 0}% of all</div>
+    </div>
+  `;
+}
+
+function renderCharts(data) {
+  const daily = data.daily || [];
+  const labels = daily.map(d => {
+    const parts = d.date.split("-");
+    return `${parts[2]}/${parts[1]}`;
+  });
+
+  const barCtx = document.getElementById("barChart").getContext("2d");
+  if (barChartInstance) barChartInstance.destroy();
+  barChartInstance = new Chart(barCtx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Scheduled", data: daily.map(d => d.scheduled || 0), backgroundColor: "#93c5fd", borderRadius: 4 },
+        { label: "Completed", data: daily.map(d => d.completed || 0), backgroundColor: "#6ee7b7", borderRadius: 4 },
+        { label: "No Show", data: daily.map(d => d.no_show || 0), backgroundColor: "#fcd34d", borderRadius: 4 },
+        { label: "Cancelled", data: daily.map(d => d.cancelled || 0), backgroundColor: "#fca5a5", borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } },
+      },
+    },
+  });
+
+  const o = data.overall;
+  const pieCtx = document.getElementById("pieChart").getContext("2d");
+  if (pieChartInstance) pieChartInstance.destroy();
+  pieChartInstance = new Chart(pieCtx, {
+    type: "doughnut",
+    data: {
+      labels: ["Scheduled", "Completed", "No Show", "Cancelled"],
+      datasets: [{
+        data: [o.scheduled, o.completed, o.no_show, o.cancelled],
+        backgroundColor: ["#60a5fa", "#34d399", "#fbbf24", "#f87171"],
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 12, padding: 12, font: { size: 11 } } },
+      },
+    },
+  });
+}
+
+async function loadAppointments() {
+  tableLoading.style.display = "block";
+  const params = new URLSearchParams();
+  params.set("page", currentPage);
+  params.set("per_page", 50);
+  if (filterFrom.value) params.set("date_from", filterFrom.value);
+  if (filterTo.value) params.set("date_to", filterTo.value);
+  if (filterStatus.value) params.set("status", filterStatus.value);
+  if (filterName.value) params.set("patient_name", filterName.value);
+
+  try {
+    const resp = await fetch(`${API_BASE}/admin/appointments?${params}`, { headers: apiHeaders() });
+    if (resp.status === 401) { logout(); return; }
+    const data = await resp.json();
+    renderTable(data);
+  } catch (err) {
+    showToast("Failed to load appointments", "error");
+    tableLoading.style.display = "none";
+  }
+}
+
+function renderTable(data) {
+  const apps = data.appointments || [];
+  const total = data.total || 0;
+  const page = data.page || 1;
+  const perPage = data.per_page || 50;
+  const totalPages = Math.ceil(total / perPage);
+
+  let html = `<table><thead><tr>
+    <th>Time</th><th>Patient</th><th>Reason</th><th>Status</th><th>Action</th>
+  </tr></thead><tbody>`;
+
+  if (apps.length === 0) {
+    html += `<tr><td colspan="5" style="text-align:center;color:#a09282;padding:40px;">No appointments found</td></tr>`;
+  } else {
+    for (const a of apps) {
+      const statusLabel = a.status === "no_show" ? "No Show" : a.status.charAt(0).toUpperCase() + a.status.slice(1);
+      html += `<tr>
+        <td style="white-space:nowrap;">${fmtDateTime(a.start_time)}</td>
+        <td><strong>${escapeHtml(a.patient_name)}</strong></td>
+        <td>${escapeHtml(a.reason || "\u2014")}</td>
+        <td><span class="status-badge ${a.status}">${statusLabel}</span></td>
+        <td style="white-space:nowrap;">
+          ${a.status === "scheduled" ? `
+            <button class="action-btn complete" onclick="updateStatus(${a.id},'completed')">&#10003; Complete</button>
+            <button class="action-btn noshow" onclick="updateStatus(${a.id},'no_show')">&#9202; No Show</button>
+            <button class="action-btn cancel-act" onclick="updateStatus(${a.id},'cancelled')">&#10007; Cancel</button>
+          ` : `
+            <button class="action-btn complete" onclick="updateStatus(${a.id},'scheduled')">&#8635; Revert</button>
+          `}
+        </td>
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table>`;
+
+  html += `<div class="page-info">
+    <span>${total} appointment(s) &mdash; Page ${page} of ${totalPages}</span>
+    <div class="pages">
+      <button onclick="goPage(${page - 1})" ${page <= 1 ? "disabled" : ""}>&#8592; Prev</button>
+      <button onclick="goPage(${page + 1})" ${page >= totalPages ? "disabled" : ""}>Next &#8594;</button>
+    </div>
+  </div>`;
+
+  tableWrap.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function goPage(p) {
+  if (p < 1) return;
+  currentPage = p;
+  loadAppointments();
+}
+
+async function updateStatus(id, newStatus) {
+  try {
+    const resp = await fetch(`${API_BASE}/admin/appointments/${id}/status`, {
+      method: "PATCH",
+      headers: apiHeaders(),
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (resp.status === 401) { logout(); return; }
+    if (!resp.ok) throw new Error("Update failed");
+    showToast(`Appointment marked as ${newStatus.replace("_", " ")}`);
+    loadStats();
+    loadAppointments();
+  } catch (err) {
+    showToast("Failed to update status", "error");
+  }
+}
+
+function getSuperKey() {
+  return superKeyInput.value.trim();
+}
+
+function validateSuperKey() {
+  const key = getSuperKey();
+  if (!key) {
+    superKeyStatus.textContent = "Super admin key is required for settings changes";
+    superKeyStatus.className = "super-key-status invalid";
+    return false;
+  }
+  superKeyStatus.textContent = "Key entered (will be validated on save)";
+  superKeyStatus.className = "super-key-status valid";
+  return true;
+}
+
+async function saveAllSettings() {
+  const superKey = getSuperKey();
+  if (!superKey) {
+    showToast("Super admin key is required to save settings", "error");
+    return;
+  }
+
+  let hoursRaw = document.getElementById("setClinicHours").value;
+  try {
+    JSON.parse(hoursRaw);
+  } catch {
+    showToast("Opening Hours must be valid JSON", "error");
+    return;
+  }
+
+  const body = {
+    clinic_name: document.getElementById("setClinicName").value,
+    clinic_address: document.getElementById("setClinicAddress").value,
+    clinic_phone: document.getElementById("setClinicPhone").value,
+    clinic_email: document.getElementById("setClinicEmail").value,
+    clinic_hours: hoursRaw,
+    brand_primary_color: document.getElementById("setPrimaryColor").value,
+    brand_accent_color: document.getElementById("setAccentColor").value,
+    vapi_assistant_id: document.getElementById("setVapiAssistantId").value,
+    vapi_public_key: document.getElementById("setVapiPublicKey").value,
+  };
+
+  try {
+    const resp = await fetch(`${API_BASE}/admin/settings`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Super-Admin-Key": superKey,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: "Save failed" }));
+      showToast(err.detail || "Failed to save settings", "error");
+      return;
+    }
+    showToast("Settings saved successfully");
+    loadClinicName();
+  } catch {
+    showToast("Failed to save settings", "error");
+  }
+}
+
+async function changePassword() {
+  const superKey = getSuperKey();
+  if (!superKey) {
+    showToast("Super admin key is required to change password", "error");
+    return;
+  }
+
+  const newPwd = document.getElementById("setNewPassword").value;
+  const confirmPwd = document.getElementById("setConfirmPassword").value;
+
+  if (!newPwd || newPwd.length < 4) {
+    showToast("Password must be at least 4 characters", "error");
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    showToast("Passwords do not match", "error");
+    return;
+  }
+
+  try {
+    const resp = await fetch(`${API_BASE}/admin/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Super-Admin-Key": superKey,
+      },
+      body: JSON.stringify({ new_password: newPwd }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: "Failed" }));
+      showToast(err.detail || "Failed to change password", "error");
+      return;
+    }
+    showToast("Admin password changed successfully");
+    document.getElementById("setNewPassword").value = "";
+    document.getElementById("setConfirmPassword").value = "";
+  } catch {
+    showToast("Failed to change password", "error");
+  }
+}
+
+superKeyInput.addEventListener("input", validateSuperKey);
+saveSettingsBtn.addEventListener("click", saveAllSettings);
+changePasswordBtn.addEventListener("click", changePassword);
+
+loginBtn.addEventListener("click", () => doLogin(passwordInput.value));
+passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(passwordInput.value); });
+logoutBtn.addEventListener("click", logout);
+
+navDashboardBtn.addEventListener("click", () => switchView("dashboard"));
+navSettingsBtn.addEventListener("click", () => switchView("settings"));
+
+filterBtn.addEventListener("click", () => { currentPage = 1; loadAppointments(); });
+clearFilterBtn.addEventListener("click", () => {
+  filterFrom.value = ""; filterTo.value = ""; filterStatus.value = ""; filterName.value = "";
+  currentPage = 1; loadAppointments();
+});
+
+filterFrom.value = todayStr();
+filterTo.value = todayStr();
+
+navSettingsBtn.style.display = "none";
+
+(async () => {
+  try {
+    const resp = await fetch(`${API_BASE}/admin/settings`);
+    if (resp.ok) {
+      const s = await resp.json();
+      if (s.clinic_name) {
+        loginClinicName.textContent = s.clinic_name + " — Admin";
+      }
+    }
+  } catch {}
+})();
+
+if (token) {
+  showDashboard();
+} else {
+  loginScreen.style.display = "flex";
+  passwordInput.focus();
+}
+</script>
+</body>
+</html>
