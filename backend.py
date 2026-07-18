@@ -100,6 +100,21 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+class VapiToolCall(BaseModel):
+    id: str
+    name: str
+    arguments: dict = {}
+
+
+class VapiMessage(BaseModel):
+    type: str
+    toolCallList: list[VapiToolCall]
+
+
+class VapiWebhookRequest(BaseModel):
+    message: VapiMessage
+
+
 # ── FastAPI app ─────────────────────────────────────────────────────
 
 app = FastAPI(title="Clinic Voice Agent - AI Receptionist")
@@ -381,67 +396,102 @@ def admin_edit_appointment(
     return AppointmentOut.model_validate(appointment)
 
 
-# ── Schedule an appointment ─────────────────────────────────────────
+# ── Vapi webhook (receives tool-call envelope from Vapi) ───────────
 
-@app.post("/schedule_appointment/")
-def schedule_appointment(body: ScheduleRequest, db: Session = Depends(get_db)):
+@app.post("/")
+@app.post("/vapi-webhook")
+def vapi_webhook(body: VapiWebhookRequest, db: Session = Depends(get_db)):
+    results = []
+    for tc in body.message.toolCallList:
+        try:
+            if tc.name == "schedule_appointment":
+                msg = _do_schedule(
+                    patient_name=tc.arguments["patient_name"],
+                    start_time=tc.arguments["start_time"],
+                    reason=tc.arguments.get("reason"),
+                    db=db,
+                )
+            elif tc.name == "cancel_appointment":
+                msg = _do_cancel(
+                    patient_name=tc.arguments["patient_name"],
+                    date_str=tc.arguments["date"],
+                    db=db,
+                )
+            elif tc.name == "list_appointments":
+                msg = _do_list(
+                    date_str=tc.arguments["date"],
+                    db=db,
+                )
+            else:
+                msg = f"Unknown tool: {tc.name}"
+        except Exception as exc:
+            msg = f"Sorry, something went wrong: {exc}"
+
+        results.append({"toolCallId": tc.id, "result": msg})
+
+    return {"results": results}
+
+
+# ── Direct API endpoints (also accept direct JSON for testing) ──────
+
+def _do_schedule(*, patient_name: str, start_time: str, reason: str | None, db: Session) -> str:
+    try:
+        start_dt = dt.datetime.fromisoformat(start_time)
+    except ValueError:
+        return "I couldn't understand that time. Could you please repeat the date and time?"
+
     existing = db.query(Appointment).filter(
-        Appointment.start_time == body.start_time,
+        Appointment.start_time == start_dt,
         Appointment.canceled == False,
     ).first()
 
     if existing:
-        return {
-            "result": (
-                f"I'm sorry, but there is already an appointment "
-                f"scheduled at {body.start_time.strftime('%I:%M %p on %B %d, %Y')}. "
-                f"Could you please choose a different time?"
-            )
-        }
+        return (
+            f"I'm sorry, but there is already an appointment "
+            f"scheduled at {start_dt.strftime('%I:%M %p on %B %d, %Y')}. "
+            f"Could you please choose a different time?"
+        )
 
     clinic_name = get_setting(db, "clinic_name") or "the clinic"
 
     appointment = Appointment(
-        patient_name=body.patient_name,
-        reason=body.reason,
-        start_time=body.start_time,
+        patient_name=patient_name,
+        reason=reason,
+        start_time=start_dt,
         status="scheduled",
     )
     db.add(appointment)
     db.commit()
-    db.refresh(appointment)
 
-    time_str = body.start_time.strftime("%I:%M %p on %B %d, %Y")
-    return {
-        "result": (
-            f"Perfect, {body.patient_name}! Your appointment has been "
-            f"scheduled for {time_str}. We look forward to seeing you at "
-            f"{clinic_name}. Is there anything else I can help you with?"
-        )
-    }
+    time_str = start_dt.strftime("%I:%M %p on %B %d, %Y")
+    return (
+        f"Perfect, {patient_name}! Your appointment has been "
+        f"scheduled for {time_str}. We look forward to seeing you at "
+        f"{clinic_name}. Is there anything else I can help you with?"
+    )
 
 
-# ── Cancel an appointment ───────────────────────────────────────────
+def _do_cancel(*, patient_name: str, date_str: str, db: Session) -> str:
+    try:
+        date = dt.date.fromisoformat(date_str)
+    except ValueError:
+        return "I couldn't understand that date. Could you please repeat it?"
 
-@app.post("/cancel_appointment/")
-def cancel_appointment(body: CancelRequest, db: Session = Depends(get_db)):
-    start_dt = dt.datetime.combine(body.date, dt.time.min)
+    start_dt = dt.datetime.combine(date, dt.time.min)
     end_dt = start_dt + dt.timedelta(days=1)
 
     appointments = db.query(Appointment).filter(
-        Appointment.patient_name == body.patient_name,
+        Appointment.patient_name == patient_name,
         Appointment.start_time >= start_dt,
         Appointment.start_time < end_dt,
         Appointment.canceled == False,
     ).all()
 
     if not appointments:
-        return {
-            "result": (
-                f"I couldn't find any appointment for {body.patient_name} "
-                f"on {body.date.strftime('%B %d, %Y')}. Please check the name and date and try again."
-            )
-        }
+        return (
+            f"I couldn't find any appointment for {patient_name} "
+            f"on {date.strftime('%B %d, %Y')}. Please check the name and date and try again."
+        )
 
     for a in appointments:
         a.canceled = True
@@ -450,20 +500,20 @@ def cancel_appointment(body: CancelRequest, db: Session = Depends(get_db)):
     db.commit()
 
     names = ", ".join(a.start_time.strftime("%I:%M %p") for a in appointments)
-    return {
-        "result": (
-            f"Alright, I've cancelled {len(appointments)} appointment(s) "
-            f"for {body.patient_name} on {body.date.strftime('%B %d, %Y')} "
-            f"at the following time(s): {names}. You're all set!"
-        )
-    }
+    return (
+        f"Alright, I've cancelled {len(appointments)} appointment(s) "
+        f"for {patient_name} on {date.strftime('%B %d, %Y')} "
+        f"at the following time(s): {names}. You're all set!"
+    )
 
 
-# ── List appointments for a given date ──────────────────────────────
+def _do_list(*, date_str: str, db: Session) -> str:
+    try:
+        date = dt.date.fromisoformat(date_str)
+    except ValueError:
+        return "I couldn't understand that date. Could you please repeat it?"
 
-@app.post("/list_appointments/")
-def list_appointments(body: ListRequest, db: Session = Depends(get_db)):
-    start_dt = dt.datetime.combine(body.date, dt.time.min)
+    start_dt = dt.datetime.combine(date, dt.time.min)
     end_dt = start_dt + dt.timedelta(days=1)
 
     appointments = db.query(Appointment).filter(
@@ -473,12 +523,10 @@ def list_appointments(body: ListRequest, db: Session = Depends(get_db)):
     ).order_by(Appointment.start_time.asc()).all()
 
     if not appointments:
-        return {
-            "result": (
-                f"There are no appointments scheduled "
-                f"for {body.date.strftime('%B %d, %Y')}. The day is completely free!"
-            )
-        }
+        return (
+            f"There are no appointments scheduled "
+            f"for {date.strftime('%B %d, %Y')}. The day is completely free!"
+        )
 
     lines = [
         f"{a.start_time.strftime('%I:%M %p')} — {a.patient_name}"
@@ -486,13 +534,39 @@ def list_appointments(body: ListRequest, db: Session = Depends(get_db)):
         for a in appointments
     ]
     summary = "\n".join(lines)
+    return (
+        f"Here are the appointments for {date.strftime('%B %d, %Y')}:\n{summary}\n"
+        f"That's {len(appointments)} appointment(s) in total."
+    )
 
-    return {
-        "result": (
-            f"Here are the appointments for {body.date.strftime('%B %d, %Y')}:\n{summary}\n"
-            f"That's {len(appointments)} appointment(s) in total."
-        )
-    }
+
+# ── Legacy direct JSON endpoints (for backward compatibility) ────────
+
+@app.post("/schedule_appointment/")
+def schedule_appointment(body: ScheduleRequest, db: Session = Depends(get_db)):
+    return {"results": [{"toolCallId": "", "result": _do_schedule(
+        patient_name=body.patient_name,
+        start_time=body.start_time.isoformat(),
+        reason=body.reason,
+        db=db,
+    )}]}
+
+
+@app.post("/cancel_appointment/")
+def cancel_appointment(body: CancelRequest, db: Session = Depends(get_db)):
+    return {"results": [{"toolCallId": "", "result": _do_cancel(
+        patient_name=body.patient_name,
+        date_str=body.date.isoformat(),
+        db=db,
+    )}]}
+
+
+@app.post("/list_appointments/")
+def list_appointments(body: ListRequest, db: Session = Depends(get_db)):
+    return {"results": [{"toolCallId": "", "result": _do_list(
+        date_str=body.date.isoformat(),
+        db=db,
+    )}]}
 
 
 # ── Run ─────────────────────────────────────────────────────────────
